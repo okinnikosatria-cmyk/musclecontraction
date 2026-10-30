@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhysioFlex 3D - Muscle Contraction & Relaxation</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka & Plus Jakarta Sans for friendly 3D Pixar style -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            fredoka: ['Fredoka', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+          },
+          colors: {
+            pixar: {
+              red: '#FF4B4B',
+              coral: '#FF6B6B',
+              orange: '#FF8E53',
+              yellow: '#FFC837',
+              blue: '#2575FC',
+              sky: '#00C6FF',
+              purple: '#6A11CB',
+              green: '#10B981',
+              dark: '#1E293B',
+              muscleRed: '#E63946',
+              myosinYellow: '#F4A261',
+              actinBlue: '#4EA8DE',
+              calciumGreen: '#2A9D8F'
+            }
+          },
+          boxShadow: {
+            'pixar': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            'pixar-lg': '0 20px 30px -10px rgba(0, 0, 0, 0.15), 0 10px 15px -5px rgba(0, 0, 0, 0.08)',
+            '3d-red': '0 6px 0px #DC2626, 0 10px 15px rgba(0,0,0,0.15)',
+            '3d-blue': '0 6px 0px #1D4ED8, 0 10px 15px rgba(0,0,0,0.15)',
+            '3d-green': '0 6px 0px #047857, 0 10px 15px rgba(0,0,0,0.15)',
+            '3d-yellow': '0 6px 0px #D97706, 0 10px 15px rgba(0,0,0,0.15)',
+            '3d-purple': '0 6px 0px #6D28D9, 0 10px 15px rgba(0,0,0,0.15)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .pixar-title {
+      font-family: 'Fredoka', sans-serif;
+      text-shadow: 2px 3px 0px rgba(0,0,0,0.12);
+    }
+
+    .pixar-card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      border: 3px solid #FFFFFF;
+      border-radius: 2rem;
+    }
+
+    .btn-3d {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-3d:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0px rgba(0,0,0,0.2) !important;
+    }
+
+    /* Pulse Animations */
+    @keyframes pulse-calcium {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.25); opacity: 1; filter: drop-shadow(0 0 10px #2A9D8F); }
+    }
+    .calcium-pulse {
+      animation: pulse-calcium 1.5s infinite ease-in-out;
+    }
+
+    @keyframes float-gentle {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .float-animation {
+      animation: float-gentle 3s infinite ease-in-out;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94A3B8;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748B;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col min-h-screen">
+
+  <!-- Header / Navigation Bar -->
+  <header class="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b-4 border-slate-200/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-red-500 via-orange-400 to-amber-300 flex items-center justify-center text-white shadow-lg transform hover:rotate-6 transition-all duration-300">
+          <i class="fa-solid fa-bolt-lightning text-2xl drop-shadow"></i>
+        </div>
+        <div>
+          <h1 class="pixar-title text-xl sm:text-2xl font-bold bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 bg-clip-text text-transparent">
+            PhysioFlex 3D
+          </h1>
+          <p class="text-xs text-slate-500 font-bold tracking-wide">Grade 11 Anatomy & Physiology</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80">
+        <button onclick="switchTab('home')" id="nav-home" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-house mr-1.5"></i> Home
+        </button>
+        <button onclick="switchTab('guide')" id="nav-guide" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-compass mr-1.5"></i> Guide & Objectives
+        </button>
+        <button onclick="switchTab('material')" id="nav-material" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-layer-group mr-1.5"></i> 3D Lessons
+        </button>
+        <button onclick="switchTab('games')" id="nav-games" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-gamepad mr-1.5"></i> Mini-Games
+        </button>
+        <button onclick="switchTab('quiz')" id="nav-quiz" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-award mr-1.5"></i> Quiz
+        </button>
+        <button onclick="switchTab('developer')" id="nav-developer" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold transition-all text-slate-600 hover:text-slate-900">
+          <i class="fa-solid fa-user-gear mr-1.5"></i> Developer
+        </button>
+      </nav>
+
+      <!-- Mobile Navigation Trigger -->
+      <div class="md:hidden">
+        <button onclick="toggleMobileMenu()" class="p-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+          <i class="fa-solid fa-bars text-xl" id="menu-icon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Dropdown -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-2">
+      <button onclick="switchTab('home')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-house w-6 text-red-500"></i> Home
+      </button>
+      <button onclick="switchTab('guide')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-compass w-6 text-blue-500"></i> Guide & Objectives
+      </button>
+      <button onclick="switchTab('material')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-layer-group w-6 text-amber-500"></i> 3D Lessons
+      </button>
+      <button onclick="switchTab('games')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-gamepad w-6 text-purple-500"></i> Mini-Games
+      </button>
+      <button onclick="switchTab('quiz')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-award w-6 text-emerald-500"></i> Quiz
+      </button>
+      <button onclick="switchTab('developer')" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+        <i class="fa-solid fa-user-gear w-6 text-indigo-500"></i> Developer Profile
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- TAB 1: HOME PAGE -->
+    <section id="tab-home" class="tab-content transition-opacity duration-300">
+      <div class="grid lg:grid-cols-12 gap-8 items-center py-6">
+        <!-- Hero Text -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 border border-red-200 text-red-600 font-bold text-xs uppercase tracking-wider">
+            <i class="fa-solid fa-sparkles"></i> High School Biology Grade 11
+          </div>
+          <h1 class="pixar-title text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight">
+            Discover How Your <span class="bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">Muscles Move!</span>
+          </h1>
+          <p class="text-base sm:text-lg text-slate-600 leading-relaxed font-medium">
+            Step into a 3D Pixar-styled interactive journey! Explore muscle micro-architecture, manipulate Calcium ions (Ca2+) and ATP, and master the sliding filament mechanism like never before!
+          </p>
+          <div class="flex flex-wrap gap-4 pt-2">
+            <button onclick="switchTab('material')" class="btn-3d shadow-3d-red bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold px-8 py-4 rounded-2xl text-lg flex items-center gap-3">
+              <i class="fa-solid fa-play"></i> Start 3D Lesson
+            </button>
+            <button onclick="switchTab('games')" class="btn-3d shadow-3d-purple bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-extrabold px-8 py-4 rounded-2xl text-lg flex items-center gap-3">
+              <i class="fa-solid fa-gamepad"></i> Play Mini-Games
+            </button>
+          </div>
+        </div>
+
+        <!-- Hero 3D Card Graphic -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div class="pixar-card p-6 shadow-pixar-lg relative overflow-hidden text-center float-animation max-w-md w-full border-4 border-red-200/80">
+            <div class="bg-gradient-to-b from-red-50 to-orange-50 rounded-2xl p-6 relative">
+              <svg class="w-full h-64 mx-auto drop-shadow-md" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Biceps Muscle Artwork (3D Pixar Style) -->
+                <path d="M 50 100 C 50 40, 150 20, 250 100 C 150 180, 50 160, 50 100 Z" fill="url(#biceps-grad)" stroke="#B91C1C" stroke-width="4"/>
+                <path d="M 60 90 C 100 50, 180 40, 240 90" stroke="#FCA5A5" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+                <!-- Tendons -->
+                <path d="M 20 110 L 50 100 L 20 90" fill="#E2E8F0" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+                <path d="M 280 110 L 250 100 L 280 90" fill="#E2E8F0" stroke="#94A3B8" stroke-width="6" stroke-linecap="round"/>
+                <!-- Sparkles -->
+                <circle cx="150" cy="80" r="12" fill="#FFD166" opacity="0.9"/>
+                <text x="145" y="85" font-size="12" font-weight="bold" fill="#B91C1C">ATP</text>
+                <circle cx="190" cy="110" r="8" fill="#2A9D8F"/>
+                <text x="182" y="113" font-size="9" font-weight="bold" fill="#FFF">Ca2+</text>
+                <defs>
+                  <linearGradient id="biceps-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#FF6B6B"/>
+                    <stop offset="100%" stop-color="#EE5253"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div class="mt-4 bg-white/90 backdrop-blur rounded-xl p-3 shadow-sm border border-red-100">
+                <span class="font-fredoka text-red-600 text-lg font-bold">Interactive Sliding Filament Model</span>
+                <p class="text-xs text-slate-500 font-medium">Visualizing Myosin, Actin, Troponin & ATP in Action!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feature Cards Grid -->
+      <div class="grid md:grid-cols-3 gap-6 mt-10">
+        <div class="pixar-card p-6 shadow-pixar hover:scale-[1.02] transition-transform cursor-pointer border-2 border-red-100" onclick="switchTab('material')">
+          <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center text-2xl font-bold mb-4 shadow-sm">
+            <i class="fa-solid fa-microscope"></i>
+          </div>
+          <h3 class="font-fredoka text-xl font-bold text-slate-900 mb-2">1. Muscle Hierarchy</h3>
+          <p class="text-sm text-slate-600 leading-relaxed font-medium">Zoom from macro biceps to fascicles, muscle fibers, myofibrils, down to the sarcomere level.</p>
+        </div>
+
+        <div class="pixar-card p-6 shadow-pixar hover:scale-[1.02] transition-transform cursor-pointer border-2 border-blue-100" onclick="switchTab('material')">
+          <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-500 flex items-center justify-center text-2xl font-bold mb-4 shadow-sm">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <h3 class="font-fredoka text-xl font-bold text-slate-900 mb-2">2. Contraction Simulator</h3>
+          <p class="text-sm text-slate-600 leading-relaxed font-medium">Control Ca2+ levels & ATP triggers to watch the cross-bridge cycle and sarcomere shortening live!</p>
+        </div>
+
+        <div class="pixar-card p-6 shadow-pixar hover:scale-[1.02] transition-transform cursor-pointer border-2 border-emerald-100" onclick="switchTab('quiz')">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-500 flex items-center justify-center text-2xl font-bold mb-4 shadow-sm">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <h3 class="font-fredoka text-xl font-bold text-slate-900 mb-2">3. Challenge & Quiz</h3>
+          <p class="text-sm text-slate-600 leading-relaxed font-medium">Test your mastery through 2 gamified challenges and an interactive quiz with instant rewards!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: PANDUAN & TUJUAN PEMBELAJARAN -->
+    <section id="tab-guide" class="tab-content hidden transition-opacity duration-300">
+      <div class="max-w-4xl mx-auto space-y-8">
+        
+        <!-- User Guide -->
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-blue-200">
+          <div class="flex items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div class="w-14 h-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center text-2xl font-bold shadow-md">
+              <i class="fa-solid fa-compass"></i>
+            </div>
+            <div>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900">User Guide (Panduan Media)</h2>
+              <p class="text-xs sm:text-sm text-blue-600 font-bold">How to maximize your learning experience in PhysioFlex 3D</p>
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0">1</span>
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm mb-1">Explore 3D Structures</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">Click through levels from Whole Muscle to Sarcomere in the Lesson section.</p>
+              </div>
+            </div>
+
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0">2</span>
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm mb-1">Run Contraction Simulator</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">Use the Calcium (Ca2+) & ATP toggle switches to see how cross-bridges form step-by-step.</p>
+              </div>
+            </div>
+
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0">3</span>
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm mb-1">Play Mini-Games</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">Assemble sarcomere parts in Game 1 and execute fast cross-bridge pulls in Game 2.</p>
+              </div>
+            </div>
+
+            <div class="bg-blue-50/60 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+              <span class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm shrink-0">4</span>
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm mb-1">Complete Interactive Quiz</h4>
+                <p class="text-xs text-slate-600 leading-relaxed">Answer 5 high-yield Grade 11 questions to test your complete understanding.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Learning Objectives -->
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-amber-200">
+          <div class="flex items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl font-bold shadow-md">
+              <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <div>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900">Learning Objectives (Tujuan Pembelajaran)</h2>
+              <p class="text-xs sm:text-sm text-amber-600 font-bold">Targeted achievements for Grade 11 Anatomy & Physiology</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-start gap-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+              <i class="fa-solid fa-circle-check text-amber-500 text-xl mt-0.5"></i>
+              <p class="text-sm text-slate-700 font-medium">
+                Students are able to <strong class="text-amber-800">analyze the essential physiological roles</strong> of Calcium ions (Ca2+), ATP hydrolysis, Troponin, Tropomyosin, and Myosin head cross-bridge formation.
+              </p>
+            </div>
+
+            <div class="flex items-start gap-3 bg-amber-50/60 p-4 rounded-2xl border border-amber-100">
+              <i class="fa-solid fa-circle-check text-amber-500 text-xl mt-0.5"></i>
+              <p class="text-sm text-slate-700 font-medium">
+                Students are able to <strong class="text-amber-800">differentiate between contraction and relaxation phases</strong>, including Ca2+ reuptake into the Sarcoplasmic Reticulum.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 3: MATERI DAN SIMULASI -->
+    <section id="tab-material" class="tab-content hidden transition-opacity duration-300">
+      
+      <!-- Sub-tab Navigation -->
+      <div class="flex justify-center mb-8">
+        <div class="bg-white/80 p-2 rounded-2xl border-2 border-slate-200/80 inline-flex gap-2 shadow-sm">
+          <button onclick="switchSubMaterial('structure')" id="subnav-structure" class="px-5 py-3 rounded-xl font-bold text-sm transition-all bg-red-500 text-white shadow-md">
+            <i class="fa-solid fa-sitemap mr-2"></i>1. Muscle Structure
+          </button>
+          <button onclick="switchSubMaterial('mechanism')" id="subnav-mechanism" class="px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900">
+            <i class="fa-solid fa-arrows-left-right-to-line mr-2"></i>2. Contraction & Relaxation
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 3.1: MUSCLE STRUCTURE EXPLORER -->
+      <div id="sub-structure" class="space-y-6">
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-red-200">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <span class="px-3 py-1 bg-red-100 text-red-600 font-bold text-xs rounded-full uppercase tracking-wider">Topic 1</span>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Hierarchical Structure of Skeletal Muscle</h2>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">Click on any level to explore its structural detail!</p>
+            </div>
+            
+            <!-- Structure Selector Buttons -->
+            <div class="flex flex-wrap gap-2">
+              <button onclick="selectStructureLevel(0)" id="struct-btn-0" class="struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500 text-white border-2 border-red-600">Skeletal Muscle</button>
+              <button onclick="selectStructureLevel(1)" id="struct-btn-1" class="struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border-2 border-slate-200 hover:bg-slate-200">Fascicle</button>
+              <button onclick="selectStructureLevel(2)" id="struct-btn-2" class="struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border-2 border-slate-200 hover:bg-slate-200">Muscle Fiber (Cell)</button>
+              <button onclick="selectStructureLevel(3)" id="struct-btn-3" class="struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border-2 border-slate-200 hover:bg-slate-200">Myofibril & Sarcomere</button>
+            </div>
+          </div>
+
+          <!-- Interactive Graphic Canvas Area -->
+          <div class="grid lg:grid-cols-12 gap-6 items-center">
+            
+            <!-- Dynamic Canvas Graphic -->
+            <div class="lg:col-span-7 bg-slate-900 rounded-3xl p-6 relative overflow-hidden border-4 border-slate-800 min-h-[340px] flex flex-col justify-center items-center shadow-inner">
+              
+              <!-- SVG Visual Display -->
+              <svg id="structure-svg" class="w-full h-72 transition-all duration-500" viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- SVG Content dynamically loaded via JavaScript -->
+              </svg>
+
+              <!-- Zoom Indicator Tag -->
+              <div class="absolute top-4 left-4 bg-white/10 backdrop-blur border border-white/20 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass text-amber-400"></i>
+                <span id="struct-zoom-label">Level 1: Whole Muscle</span>
+              </div>
+            </div>
+
+            <!-- Detailed Explanation Card -->
+            <div class="lg:col-span-5 space-y-4">
+              <div class="bg-red-50/70 rounded-2xl p-5 border-2 border-red-200">
+                <h3 id="struct-title" class="font-fredoka text-xl font-bold text-red-600 mb-2">Skeletal Muscle (Biceps Brachii)</h3>
+                <p id="struct-desc" class="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium">
+                  An entire skeletal muscle organ surrounded by a layer of dense connective tissue called the <strong>Epimysium</strong>. It attaches to bones via tendons.
+                </p>
+              </div>
+
+              <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
+                <h4 class="font-bold text-xs uppercase text-slate-500 tracking-wider">Key Anatomical Features</h4>
+                <ul id="struct-features" class="space-y-1.5 text-xs text-slate-700 font-medium">
+                  <!-- Dynamic Features -->
+                </ul>
+              </div>
+
+              <div class="flex justify-between items-center pt-2">
+                <button onclick="prevStructureLevel()" class="btn-3d px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-xs text-slate-700">
+                  <i class="fa-solid fa-arrow-left mr-1"></i> Zoom Out
+                </button>
+                <button onclick="nextStructureLevel()" class="btn-3d px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs shadow-3d-red">
+                  Zoom In <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3.2: MECHANISM CONTRACTION AND RELAXATION -->
+      <div id="sub-mechanism" class="hidden space-y-6">
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-blue-200">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <span class="px-3 py-1 bg-blue-100 text-blue-600 font-bold text-xs rounded-full uppercase tracking-wider">Topic 2</span>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Sliding Filament Theory Simulator</h2>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">Toggle Calcium (Ca2+) & ATP energy to control sarcomere contraction!</p>
+            </div>
+
+            <!-- State Status Badge -->
+            <div id="status-badge" class="px-4 py-2 rounded-2xl font-bold text-xs bg-emerald-100 text-emerald-700 border-2 border-emerald-300 flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+              State: Relaxed Muscle
+            </div>
+          </div>
+
+          <!-- Simulation Interactive Display -->
+          <div class="grid lg:grid-cols-12 gap-6">
+            
+            <!-- Visual Sarcomere Canvas Container -->
+            <div class="lg:col-span-8 bg-slate-900 rounded-3xl p-6 relative overflow-hidden border-4 border-slate-800 flex flex-col justify-between shadow-inner min-h-[380px]">
+              
+              <!-- Sarcomere Header Labels -->
+              <div class="flex justify-between items-center text-xs text-slate-300 font-mono z-10">
+                <span class="bg-red-900/60 border border-red-500/50 px-2 py-1 rounded">Z-Disc (Left)</span>
+                <span class="bg-amber-900/60 border border-amber-500/50 px-2 py-1 rounded">H-Zone / M-Line</span>
+                <span class="bg-red-900/60 border border-red-500/50 px-2 py-1 rounded">Z-Disc (Right)</span>
+              </div>
+
+              <!-- Animated Sarcomere SVG -->
+              <svg id="sarcomere-svg" class="w-full h-64 my-2 transition-all duration-300" viewBox="0 0 600 240">
+                <!-- SVG dynamically animated via JS -->
+              </svg>
+
+              <!-- Calcium & ATP Visual Indicators -->
+              <div class="flex justify-between items-center bg-slate-800/80 p-3 rounded-2xl border border-slate-700 text-xs font-semibold z-10">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-400" id="indicator-ca"></span>
+                  <span class="text-slate-300">Calcium Ions (Ca2+): <strong id="label-ca-status" class="text-emerald-400">Low (SR Stored)</strong></span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-amber-400" id="indicator-atp"></span>
+                  <span class="text-slate-300">ATP Energy: <strong id="label-atp-status" class="text-amber-400">Available</strong></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Controls & Step Breakdown -->
+            <div class="lg:col-span-4 space-y-4 flex flex-col justify-between">
+              
+              <div class="space-y-3">
+                <h3 class="font-fredoka text-lg font-bold text-slate-900">Physiological Controls</h3>
+                
+                <!-- Calcium Toggle Button -->
+                <button onclick="toggleCalcium()" id="btn-toggle-ca" class="btn-3d w-full shadow-3d-green bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold p-3.5 rounded-2xl text-xs sm:text-sm flex items-center justify-between">
+                  <span><i class="fa-solid fa-atom mr-2"></i> Release Calcium (Ca2+)</span>
+                  <i class="fa-solid fa-toggle-off text-xl" id="toggle-ca-icon"></i>
+                </button>
+
+                <!-- ATP Stroke Trigger Button -->
+                <button onclick="triggerPowerStroke()" id="btn-power-stroke" class="btn-3d w-full shadow-3d-yellow bg-amber-500 hover:bg-amber-600 text-white font-extrabold p-3.5 rounded-2xl text-xs sm:text-sm flex items-center justify-between opacity-50 cursor-not-allowed" disabled>
+                  <span><i class="fa-solid fa-bolt mr-2"></i> Hydrolyze ATP (Power Stroke)</span>
+                  <i class="fa-solid fa-circle-play text-lg"></i>
+                </button>
+
+                <!-- Reset Muscle Button -->
+                <button onclick="resetMuscleSim()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-3 rounded-xl text-xs flex items-center justify-center gap-2 transition">
+                  <i class="fa-solid fa-rotate-left"></i> Reset Muscle to Relaxation
+                </button>
+              </div>
+
+              <!-- Live Step Explanation Box -->
+              <div class="bg-blue-50/80 rounded-2xl p-4 border-2 border-blue-200 space-y-2">
+                <div class="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wider">
+                  <i class="fa-solid fa-circle-info"></i> Current Cycle Phase
+                </div>
+                <h4 id="sim-phase-title" class="font-fredoka text-base font-bold text-slate-900">1. Resting State (Relaxation)</h4>
+                <p id="sim-phase-desc" class="text-xs text-slate-600 leading-relaxed font-medium">
+                  Tropomyosin blocks Myosin binding sites on Actin filaments. Calcium ions are safely stored in the Sarcoplasmic Reticulum (SR). Myosin heads are cocked with ADP + Pi.
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Step-by-Step Flowcard Timeline -->
+          <div class="mt-8 pt-6 border-t border-slate-200">
+            <h3 class="font-fredoka text-xl font-bold text-slate-900 mb-4">Summary of the 4 Contraction Steps</h3>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-red-100 text-red-600 font-bold text-xs flex items-center justify-center mb-2">1</div>
+                <h5 class="font-bold text-xs text-slate-900 mb-1">Action Potential & Ca2+</h5>
+                <p class="text-[11px] text-slate-600 leading-normal">Nerve impulse signals SR to release Calcium ions (Ca2+) into the sarcoplasm.</p>
+              </div>
+
+              <div class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 font-bold text-xs flex items-center justify-center mb-2">2</div>
+                <h5 class="font-bold text-xs text-slate-900 mb-1">Troponin Binding</h5>
+                <p class="text-[11px] text-slate-600 leading-normal">Ca2+ binds Troponin, shifting Tropomyosin away to expose Actin binding sites.</p>
+              </div>
+
+              <div class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 font-bold text-xs flex items-center justify-center mb-2">3</div>
+                <h5 class="font-bold text-xs text-slate-900 mb-1">Cross-Bridge & Power Stroke</h5>
+                <p class="text-[11px] text-slate-600 leading-normal">Myosin heads bind Actin and pivot (Power Stroke), pulling thin filaments toward the M-line.</p>
+              </div>
+
+              <div class="bg-white p-4 rounded-2xl border-2 border-slate-200 shadow-sm">
+                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 font-bold text-xs flex items-center justify-center mb-2">4</div>
+                <h5 class="font-bold text-xs text-slate-900 mb-1">ATP Detachment & Relaxation</h5>
+                <p class="text-[11px] text-slate-600 leading-normal">New ATP binds Myosin head to detach cross-bridge. Ca2+ pumped back into SR for relaxation.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 4: GIM (2 MINI-GAMES) -->
+    <section id="tab-games" class="tab-content hidden transition-opacity duration-300">
+      
+      <!-- Sub Game Selection Bar -->
+      <div class="flex justify-center mb-8">
+        <div class="bg-white/80 p-2 rounded-2xl border-2 border-slate-200/80 inline-flex gap-2 shadow-sm">
+          <button onclick="switchGame(1)" id="game-tab-1" class="px-5 py-3 rounded-xl font-bold text-sm transition-all bg-purple-600 text-white shadow-md">
+            <i class="fa-solid fa-puzzle-piece mr-2"></i>Game 1: Sarcomere Builder
+          </button>
+          <button onclick="switchGame(2)" id="game-tab-2" class="px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900">
+            <i class="fa-solid fa-stopwatch mr-2"></i>Game 2: Cross-Bridge Speed Run
+          </button>
+        </div>
+      </div>
+
+      <!-- GAME 1: SARCOMERE BUILDER PUZZLE -->
+      <div id="game-container-1" class="space-y-6">
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-purple-200">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <span class="px-3 py-1 bg-purple-100 text-purple-600 font-bold text-xs rounded-full uppercase tracking-wider">Mini-Game 1</span>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Sarcomere Assembly Challenge</h2>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">Click a structure component on the left, then click its correct slot on the diagram!</p>
+            </div>
+            <div class="bg-purple-50 px-4 py-2 rounded-2xl border border-purple-200 text-purple-700 font-bold text-sm">
+              Score: <span id="game1-score" class="text-xl text-purple-900">0</span> / 5
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-12 gap-6">
+            
+            <!-- Draggable Item Selection Palette -->
+            <div class="lg:col-span-4 space-y-3">
+              <h3 class="font-fredoka text-sm font-bold text-slate-800 uppercase tracking-wider">Available Parts</h3>
+              <div class="space-y-2" id="game1-palette">
+                <!-- Selectable Buttons Generated via JS -->
+              </div>
+            </div>
+
+            <!-- Target Diagram Canvas Drop Zones -->
+            <div class="lg:col-span-8 bg-slate-900 rounded-3xl p-6 relative border-4 border-slate-800 flex flex-col justify-center items-center shadow-inner min-h-[320px]">
+              
+              <svg class="w-full h-64" viewBox="0 0 500 220">
+                <!-- Background Sarcomere Outline -->
+                <!-- Left Slot 1: Z-Disc -->
+                <rect x="20" y="20" width="15" height="180" fill="#334155" rx="4" class="cursor-pointer hover:stroke-amber-400 stroke-2" onclick="placeGame1Part('z-disc')"/>
+                <text x="27" y="115" font-size="10" fill="#94A3B8" text-anchor="middle" writing-mode="tb">Slot 1</text>
+
+                <!-- Slot 2: Actin Thin Filament -->
+                <rect x="40" y="60" width="160" height="12" fill="#334155" rx="4" class="cursor-pointer hover:stroke-amber-400 stroke-2" onclick="placeGame1Part('actin')"/>
+                <text x="120" y="69" font-size="10" fill="#94A3B8" text-anchor="middle">Slot 2</text>
+
+                <!-- Slot 3: Myosin Thick Filament -->
+                <rect x="150" y="100" width="200" height="20" fill="#334155" rx="6" class="cursor-pointer hover:stroke-amber-400 stroke-2" onclick="placeGame1Part('myosin')"/>
+                <text x="250" y="113" font-size="10" fill="#94A3B8" text-anchor="middle">Slot 3</text>
+
+                <!-- Slot 4: M-Line -->
+                <line x1="250" y1="30" x2="250" y2="190" stroke="#334155" stroke-width="8" stroke-dasharray="6,6" class="cursor-pointer hover:stroke-amber-400" onclick="placeGame1Part('m-line')"/>
+                <text x="250" y="25" font-size="10" fill="#94A3B8" text-anchor="middle">Slot 4</text>
+
+                <!-- Slot 5: Calcium Ion -->
+                <circle cx="80" cy="160" r="14" fill="#334155" class="cursor-pointer hover:stroke-amber-400 stroke-2" onclick="placeGame1Part('calcium')"/>
+                <text x="80" y="163" font-size="9" fill="#94A3B8" text-anchor="middle">Slot 5</text>
+              </svg>
+
+              <div id="game1-feedback" class="mt-4 text-xs font-bold text-amber-300 bg-slate-800/90 px-4 py-2 rounded-xl border border-slate-700">
+                Select a part from the palette, then click its slot in the dark box!
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME 2: CROSS-BRIDGE SPEED RUN -->
+      <div id="game-container-2" class="hidden space-y-6">
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-indigo-200">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <span class="px-3 py-1 bg-indigo-100 text-indigo-600 font-bold text-xs rounded-full uppercase tracking-wider">Mini-Game 2</span>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Cross-Bridge Speed Challenge</h2>
+              <p class="text-xs sm:text-sm text-slate-500 font-medium">Click the correct action button matching the physiological prompt as fast as possible!</p>
+            </div>
+            <div class="flex gap-4">
+              <div class="bg-indigo-50 px-4 py-2 rounded-2xl border border-indigo-200 text-indigo-700 font-bold text-xs sm:text-sm">
+                Time: <span id="game2-timer" class="text-lg text-indigo-900">15</span>s
+              </div>
+              <div class="bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200 text-emerald-700 font-bold text-xs sm:text-sm">
+                Score: <span id="game2-score" class="text-lg text-emerald-900">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 rounded-3xl p-8 border-4 border-slate-800 text-center space-y-6 shadow-inner">
+            
+            <div id="game2-start-screen" class="space-y-4 py-6">
+              <i class="fa-solid fa-bolt-lightning text-5xl text-amber-400 animate-bounce"></i>
+              <h3 class="font-fredoka text-2xl text-white font-bold">Ready to Test Your Reaction & Knowledge?</h3>
+              <p class="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
+                Prompts will appear describing a step in muscle contraction or relaxation. Click the matching physiological component before time runs out!
+              </p>
+              <button onclick="startGame2()" class="btn-3d shadow-3d-green bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-8 py-3.5 rounded-2xl text-base inline-flex items-center gap-2">
+                <i class="fa-solid fa-play"></i> Start Speed Run
+              </button>
+            </div>
+
+            <div id="game2-play-screen" class="hidden space-y-6 py-4">
+              <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-6 max-w-lg mx-auto">
+                <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Biological Prompt:</span>
+                <h3 id="game2-prompt" class="font-fredoka text-xl text-white font-bold mt-2">
+                  "Binds to Troponin causing Tropomyosin to shift off Actin binding sites."
+                </h3>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto" id="game2-options">
+                <!-- Dynamically generated choice buttons -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- TAB 5: KUIS INTERAKTIF -->
+    <section id="tab-quiz" class="tab-content hidden transition-opacity duration-300">
+      <div class="max-w-3xl mx-auto space-y-6">
+        
+        <div class="pixar-card p-6 sm:p-8 shadow-pixar border-4 border-emerald-200">
+          
+          <!-- Quiz Header -->
+          <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <span class="px-3 py-1 bg-emerald-100 text-emerald-600 font-bold text-xs rounded-full uppercase tracking-wider">Evaluation</span>
+              <h2 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Interactive Knowledge Quiz</h2>
+            </div>
+            <div class="bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200 text-emerald-800 font-bold text-sm">
+              Question <span id="quiz-current-num">1</span> of <span id="quiz-total-num">5</span>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-100 rounded-full h-3 mb-6 overflow-hidden border border-slate-200">
+            <div id="quiz-progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full w-1/5 transition-all duration-300"></div>
+          </div>
+
+          <!-- Quiz Container -->
+          <div id="quiz-body" class="space-y-6">
+            <!-- Question Box -->
+            <div class="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200">
+              <h3 id="quiz-question-text" class="font-fredoka text-lg sm:text-xl font-bold text-slate-900">
+                Loading Question...
+              </h3>
+            </div>
+
+            <!-- Options Box -->
+            <div id="quiz-options-container" class="space-y-3">
+              <!-- Options populated via JS -->
+            </div>
+
+            <!-- Quiz Navigation -->
+            <div class="flex justify-between items-center pt-4">
+              <button onclick="resetQuiz()" class="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1">
+                <i class="fa-solid fa-rotate-left"></i> Restart Quiz
+              </button>
+              <button onclick="nextQuizQuestion()" id="btn-next-quiz" class="btn-3d px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-extrabold text-sm shadow-3d-green hidden">
+                Next Question <i class="fa-solid fa-arrow-right ml-1"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quiz Results Screen -->
+          <div id="quiz-result-screen" class="hidden text-center py-8 space-y-6">
+            <div class="w-24 h-24 rounded-full bg-amber-100 text-amber-500 flex items-center justify-center text-5xl mx-auto shadow-md animate-bounce">
+              <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div>
+              <h3 class="font-fredoka text-3xl font-bold text-slate-900">Quiz Completed!</h3>
+              <p class="text-sm text-slate-500 font-medium mt-1">Great job testing your muscle physiology knowledge!</p>
+            </div>
+            
+            <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 max-w-xs mx-auto">
+              <span class="text-xs font-bold uppercase text-slate-400 tracking-wider">Your Final Score</span>
+              <div id="quiz-final-score" class="font-fredoka text-5xl font-bold text-emerald-600 my-2">100%</div>
+              <p id="quiz-final-feedback" class="text-xs font-bold text-slate-600">Perfect Score! You are a Muscle Master!</p>
+            </div>
+
+            <button onclick="resetQuiz()" class="btn-3d shadow-3d-green bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-8 py-3.5 rounded-2xl text-base inline-flex items-center gap-2">
+              <i class="fa-solid fa-rotate-left"></i> Try Again
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 6: PENGEMBANG (DEVELOPER PROFILE) -->
+    <section id="tab-developer" class="tab-content hidden transition-opacity duration-300">
+      <div class="max-w-3xl mx-auto">
+        <div class="pixar-card p-6 sm:p-10 shadow-pixar border-4 border-indigo-200 text-center space-y-6 relative overflow-hidden">
+          
+          <!-- Decorative Background Gradient -->
+          <div class="absolute top-0 left-0 right-0 h-32 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+
+          <!-- Profile Avatar Card -->
+          <div class="relative pt-8">
+            <div class="w-32 h-32 rounded-3xl bg-white p-2 shadow-xl mx-auto border-4 border-white transform hover:rotate-3 transition duration-300">
+              <div class="w-full h-full rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-4xl font-bold">
+                <i class="fa-solid fa-user-graduate"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Developer Info -->
+          <div>
+            <h2 class="font-fredoka text-3xl font-bold text-slate-900">Niko Satria Supardi, S.Pd</h2>
+            <p class="text-sm font-bold text-indigo-600 mt-1">Instructional Media Developer & Biology Educator</p>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Grade 11 Senior High School - Human Anatomy & Physiology</p>
+          </div>
+
+          <!-- Credentials & Media Highlights -->
+          <div class="grid sm:grid-cols-3 gap-4 pt-4 text-left">
+            <div class="bg-indigo-50/70 p-4 rounded-2xl border border-indigo-100">
+              <i class="fa-solid fa-graduation-cap text-indigo-500 text-xl mb-2"></i>
+              <h4 class="font-bold text-xs text-slate-800">Pedagogical Design</h4>
+              <p class="text-[11px] text-slate-600 mt-1">Designed aligned with Grade 11 High School Biology Curriculum.</p>
+            </div>
+
+            <div class="bg-purple-50/70 p-4 rounded-2xl border border-purple-100">
+              <i class="fa-solid fa-cubes text-purple-500 text-xl mb-2"></i>
+              <h4 class="font-bold text-xs text-slate-800">Interactive 3D Pixar</h4>
+              <p class="text-[11px] text-slate-600 mt-1">Gamified visual approach for enhanced retention & student engagement.</p>
+            </div>
+
+            <div class="bg-pink-50/70 p-4 rounded-2xl border border-pink-100">
+              <i class="fa-solid fa-square-check text-pink-500 text-xl mb-2"></i>
+              <h4 class="font-bold text-xs text-slate-800">Concept Mastery</h4>
+              <p class="text-[11px] text-slate-600 mt-1">Covers structural hierarchy to molecular cross-bridge cycle.</p>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-100 text-xs text-slate-400 font-medium">
+            PhysioFlex 3D &copy; Interactive Learning Media for High School Education.
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white/80 border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-500 font-medium">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>PhysioFlex 3D — Senior High School Human Anatomy & Physiology Grade 11</p>
+      <p class="font-bold text-slate-700">Developed by Niko Satria Supardi, S.Pd</p>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* ==========================================================================
+       1. NAVIGATION & TAB SWITCHING
+       ========================================================================== */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      // Update Header active styles
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+        btn.classList.add('text-slate-600');
+      });
+
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+        activeNav.classList.remove('text-slate-600');
+      }
+
+      // Close mobile menu if open
+      document.getElementById('mobile-menu').classList.add('hidden');
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    function switchSubMaterial(subId) {
+      document.getElementById('sub-structure').classList.add('hidden');
+      document.getElementById('sub-mechanism').classList.add('hidden');
+      document.getElementById(`sub-${subId}`).classList.remove('hidden');
+
+      const btnStruct = document.getElementById('subnav-structure');
+      const btnMech = document.getElementById('subnav-mechanism');
+
+      if (subId === 'structure') {
+        btnStruct.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all bg-red-500 text-white shadow-md";
+        btnMech.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900";
+      } else {
+        btnMech.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all bg-blue-500 text-white shadow-md";
+        btnStruct.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900";
+        renderSarcomereSim();
+      }
+    }
+
+    /* ==========================================================================
+       2. TOPIC 1: MUSCLE STRUCTURE EXPLORER LOGIC
+       ========================================================================== */
+    const structureLevels = [
+      {
+        title: "1. Whole Skeletal Muscle",
+        zoomLabel: "Level 1: Skeletal Muscle Organ",
+        desc: "Skeletal muscles are organs composed mostly of skeletal muscle tissue, attached to bones by tendons. Wrapped entirely by dense epimysium connective tissue.",
+        features: [
+          "• Attached to bones via tough collagenous tendons.",
+          "• Covered by Epimysium (outer layer).",
+          "• Contains bundles of fascicles & blood vessels."
+        ],
+        svg: `<path d="M 80 150 C 80 60, 250 40, 420 150 C 250 260, 80 240, 80 150 Z" fill="#E63946" stroke="#B91C1C" stroke-width="6"/>
+              <path d="M 20 160 L 80 150 L 20 140" fill="#E2E8F0" stroke="#94A3B8" stroke-width="12" stroke-linecap="round"/>
+              <path d="M 480 160 L 420 150 L 480 140" fill="#E2E8F0" stroke="#94A3B8" stroke-width="12" stroke-linecap="round"/>
+              <circle cx="200" cy="130" r="18" fill="#D97706" opacity="0.8"/>
+              <circle cx="280" cy="160" r="22" fill="#D97706" opacity="0.8"/>
+              <circle cx="230" cy="180" r="16" fill="#D97706" opacity="0.8"/>
+              <text x="250" y="280" font-size="14" font-weight="bold" fill="#FFF" text-anchor="middle">Epimysium & Whole Muscle organ</text>`
+      },
+      {
+        title: "2. Muscle Fascicle",
+        zoomLabel: "Level 2: Muscle Fascicle Bundle",
+        desc: "A discrete bundle of muscle fibers (cells) segregated from the rest of the muscle by a connective tissue sheath called the Perimysium.",
+        features: [
+          "• Surrounded by Perimysium sheath.",
+          "• Houses 10 to 100 individual muscle cells (fibers).",
+          "• Contains rich capillary beds & nerve fibers."
+        ],
+        svg: `<circle cx="250" cy="150" r="110" fill="#F4A261" stroke="#D97706" stroke-width="6"/>
+              <circle cx="210" cy="120" r="25" fill="#E63946"/>
+              <circle cx="280" cy="120" r="28" fill="#E63946"/>
+              <circle cx="200" cy="180" r="22" fill="#E63946"/>
+              <circle cx="270" cy="180" r="26" fill="#E63946"/>
+              <text x="250" y="280" font-size="14" font-weight="bold" fill="#FFF" text-anchor="middle">Perimysium enclosing Fascicle Bundle</text>`
+      },
+      {
+        title: "3. Muscle Fiber (Single Cell)",
+        zoomLabel: "Level 3: Muscle Fiber Cell",
+        desc: "An elongated multinucleated cell with a banded (striated) appearance. Surrounded by the Sarcolemma (plasma membrane) and Endomysium sheath.",
+        features: [
+          "• Wrapped by Endomysium & Sarcolemma.",
+          "• Contains multiple nuclei & abundant Mitochondria.",
+          "• Packed full of parallel rod-like Myofibrils."
+        ],
+        svg: `<rect x="50" y="90" width="400" height="120" rx="20" fill="#4EA8DE" stroke="#0284C7" stroke-width="6"/>
+              <line x1="120" y1="90" x2="120" y2="210" stroke="#0284C7" stroke-width="4" stroke-dasharray="8,6"/>
+              <line x1="220" y1="90" x2="220" y2="210" stroke="#0284C7" stroke-width="4" stroke-dasharray="8,6"/>
+              <line x1="320" y1="90" x2="320" y2="210" stroke="#0284C7" stroke-width="4" stroke-dasharray="8,6"/>
+              <ellipse cx="100" cy="115" rx="20" ry="10" fill="#1E1B4B"/>
+              <ellipse cx="300" cy="185" rx="20" ry="10" fill="#1E1B4B"/>
+              <text x="250" y="280" font-size="14" font-weight="bold" fill="#FFF" text-anchor="middle">Sarcolemma & Muscle Fiber (Multinucleated)</text>`
+      },
+      {
+        title: "4. Myofibril & Sarcomere",
+        zoomLabel: "Level 4: Microscopic Sarcomere Unit",
+        desc: "The functional contractile unit of skeletal muscle composed of thin (Actin) and thick (Myosin) myofilaments bounded by Z-discs.",
+        features: [
+          "• Z-Disc: Anchors Thin Actin filaments.",
+          "• Thick Filaments: Myosin with club-like heads.",
+          "• Thin Filaments: Actin, Troponin, & Tropomyosin.",
+          "• Sarcomere shortens during contraction!"
+        ],
+        svg: `<rect x="50" y="60" width="400" height="160" fill="#0F172A" rx="12" stroke="#334155" stroke-width="4"/>
+              <line x1="80" y1="60" x2="80" y2="220" stroke="#EF4444" stroke-width="8"/>
+              <line x1="420" y1="60" x2="420" y2="220" stroke="#EF4444" stroke-width="8"/>
+              <line x1="250" y1="70" x2="250" y2="210" stroke="#F59E0B" stroke-width="4" stroke-dasharray="6,6"/>
+              <!-- Thin Actin -->
+              <line x1="80" y1="100" x2="210" y2="100" stroke="#38BDF8" stroke-width="6"/>
+              <line x1="80" y1="180" x2="210" y2="180" stroke="#38BDF8" stroke-width="6"/>
+              <line x1="420" y1="100" x2="290" y2="100" stroke="#38BDF8" stroke-width="6"/>
+              <line x1="420" y1="180" x2="290" y2="180" stroke="#38BDF8" stroke-width="6"/>
+              <!-- Thick Myosin -->
+              <line x1="160" y1="140" x2="340" y2="140" stroke="#F59E0B" stroke-width="12"/>
+              <text x="250" y="280" font-size="14" font-weight="bold" fill="#FFF" text-anchor="middle">Functional Sarcomere Unit (Z-disc to Z-disc)</text>`
+      }
+    ];
+
+    let currentStructIndex = 0;
+
+    function renderStructureLevel() {
+      const data = structureLevels[currentStructIndex];
+      document.getElementById('struct-title').innerText = data.title;
+      document.getElementById('struct-desc').innerText = data.desc;
+      document.getElementById('struct-zoom-label').innerText = data.zoomLabel;
+      document.getElementById('structure-svg').innerHTML = data.svg;
+
+      const featList = document.getElementById('struct-features');
+      featList.innerHTML = '';
+      data.features.forEach(f => {
+        const li = document.createElement('li');
+        li.innerText = f;
+        featList.appendChild(li);
+      });
+
+      // Update button visual state
+      document.querySelectorAll('.struct-level-btn').forEach((btn, idx) => {
+        if (idx === currentStructIndex) {
+          btn.className = "struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-red-500 text-white border-2 border-red-600 shadow-sm";
+        } else {
+          btn.className = "struct-level-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 border-2 border-slate-200 hover:bg-slate-200";
+        }
+      });
+    }
+
+    function selectStructureLevel(index) {
+      currentStructIndex = index;
+      renderStructureLevel();
+    }
+
+    function nextStructureLevel() {
+      if (currentStructIndex < structureLevels.length - 1) {
+        currentStructIndex++;
+        renderStructureLevel();
+      }
+    }
+
+    function prevStructureLevel() {
+      if (currentStructIndex > 0) {
+        currentStructIndex--;
+        renderStructureLevel();
+      }
+    }
+
+    /* ==========================================================================
+       3. TOPIC 2: CONTRACTION SIMULATOR LOGIC
+       ========================================================================== */
+    let simState = {
+      hasCalcium: false,
+      contracted: false
+    };
+
+    function toggleCalcium() {
+      simState.hasCalcium = !simState.hasCalcium;
+      if (!simState.hasCalcium) {
+        simState.contracted = false; // reset stroke if calcium removed
+      }
+      updateSimUI();
+    }
+
+    function triggerPowerStroke() {
+      if (!simState.hasCalcium) return;
+      simState.contracted = !simState.contracted;
+      updateSimUI();
+    }
+
+    function resetMuscleSim() {
+      simState.hasCalcium = false;
+      simState.contracted = false;
+      updateSimUI();
+    }
+
+    function updateSimUI() {
+      const btnCa = document.getElementById('btn-toggle-ca');
+      const iconCa = document.getElementById('toggle-ca-icon');
+      const btnStroke = document.getElementById('btn-power-stroke');
+      const indCa = document.getElementById('indicator-ca');
+      const lblCa = document.getElementById('label-ca-status');
+      const badge = document.getElementById('status-badge');
+
+      if (simState.hasCalcium) {
+        iconCa.className = "fa-solid fa-toggle-on text-xl";
+        indCa.className = "w-3 h-3 rounded-full bg-emerald-400 animate-ping";
+        lblCa.innerText = "Released into Sarcoplasm";
+        lblCa.className = "text-emerald-400 font-bold";
+        btnStroke.disabled = false;
+        btnStroke.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else {
+        iconCa.className = "fa-solid fa-toggle-off text-xl";
+        indCa.className = "w-3 h-3 rounded-full bg-slate-500";
+        lblCa.innerText = "Low (SR Stored)";
+        lblCa.className = "text-slate-400 font-bold";
+        btnStroke.disabled = true;
+        btnStroke.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+
+      // Update Phase Text
+      const phaseTitle = document.getElementById('sim-phase-title');
+      const phaseDesc = document.getElementById('sim-phase-desc');
+
+      if (!simState.hasCalcium) {
+        badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-emerald-500"></span> State: Relaxed Muscle`;
+        badge.className = "px-4 py-2 rounded-2xl font-bold text-xs bg-emerald-100 text-emerald-700 border-2 border-emerald-300 flex items-center gap-2";
+        phaseTitle.innerText = "1. Relaxed State";
+        phaseDesc.innerText = "Tropomyosin covers binding sites on Actin. Calcium is low in sarcoplasm. Myosin heads are cocked and ready.";
+      } else if (simState.hasCalcium && !simState.contracted) {
+        badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span> State: Ca²⁺ Bound (Binding Sites Active)`;
+        badge.className = "px-4 py-2 rounded-2xl font-bold text-xs bg-amber-100 text-amber-800 border-2 border-amber-300 flex items-center gap-2";
+        phaseTitle.innerText = "2. Calcium Binding & Binding Site Exposure";
+        phaseDesc.innerText = "Ca²⁺ binds Troponin. Tropomyosin moves aside! Myosin heads are ready to form cross-bridges with Actin. Click Power Stroke!";
+      } else if (simState.hasCalcium && simState.contracted) {
+        badge.innerHTML = `<span class="w-3 h-3 rounded-full bg-red-500 animate-bounce"></span> State: Fully Contracted Muscle`;
+        badge.className = "px-4 py-2 rounded-2xl font-bold text-xs bg-red-100 text-red-700 border-2 border-red-300 flex items-center gap-2";
+        phaseTitle.innerText = "3. Power Stroke & Sarcomere Shortening";
+        phaseDesc.innerText = "Myosin heads pivot, pulling Thin Actin filaments inward toward the M-line. Z-discs move closer together. H-Zone narrows!";
+        
+        // Confetti effect for successful full contraction trigger
+        confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 } });
+      }
+
+      renderSarcomereSim();
+    }
+
+    function renderSarcomereSim() {
+      const svg = document.getElementById('sarcomere-svg');
+      
+      // Calculate positions based on state
+      let leftZ = simState.contracted ? 120 : 60;
+      let rightZ = simState.contracted ? 480 : 540;
+      let actinLeftEnd = simState.contracted ? 280 : 220;
+      let actinRightEnd = simState.contracted ? 320 : 380;
+
+      let caIons = '';
+      if (simState.hasCalcium) {
+        caIons = `
+          <circle cx="200" cy="80" r="7" fill="#2A9D8F" class="calcium-pulse"/>
+          <circle cx="400" cy="80" r="7" fill="#2A9D8F" class="calcium-pulse"/>
+          <circle cx="200" cy="160" r="7" fill="#2A9D8F" class="calcium-pulse"/>
+          <circle cx="400" cy="160" r="7" fill="#2A9D8F" class="calcium-pulse"/>
+        `;
+      }
+
+      let crossBridges = '';
+      if (simState.hasCalcium && simState.contracted) {
+        crossBridges = `
+          <!-- Cross bridge connections -->
+          <line x1="220" y1="100" x2="230" y2="120" stroke="#F4A261" stroke-width="6"/>
+          <line x1="380" y1="100" x2="370" y2="120" stroke="#F4A261" stroke-width="6"/>
+          <line x1="220" y1="140" x2="230" y2="120" stroke="#F4A261" stroke-width="6"/>
+          <line x1="380" y1="140" x2="370" y2="120" stroke="#F4A261" stroke-width="6"/>
+        `;
+      }
+
+      svg.innerHTML = `
+        <!-- Background -->
+        <rect x="0" y="0" width="600" height="240" fill="#0F172A" rx="16"/>
+
+        <!-- Z-Discs -->
+        <line x1="${leftZ}" y1="20" x2="${leftZ}" y2="220" stroke="#E63946" stroke-width="10" stroke-linecap="round"/>
+        <line x1="${rightZ}" y1="20" x2="${rightZ}" y2="220" stroke="#E63946" stroke-width="10" stroke-linecap="round"/>
+
+        <!-- M-Line -->
+        <line x1="300" y1="30" x2="300" y2="210" stroke="#F4A261" stroke-width="4" stroke-dasharray="6,6"/>
+
+        <!-- Thin Filaments (Actin) -->
+        <line x1="${leftZ}" y1="80" x2="${actinLeftEnd}" y2="80" stroke="#4EA8DE" stroke-width="8"/>
+        <line x1="${leftZ}" y1="160" x2="${actinLeftEnd}" y2="160" stroke="#4EA8DE" stroke-width="8"/>
+        
+        <line x1="${rightZ}" y1="80" x2="${actinRightEnd}" y2="80" stroke="#4EA8DE" stroke-width="8"/>
+        <line x1="${rightZ}" y1="160" x2="${actinRightEnd}" y2="160" stroke="#4EA8DE" stroke-width="8"/>
+
+        <!-- Thick Filament (Myosin) -->
+        <rect x="200" y="110" width="200" height="20" fill="#F4A261" rx="8"/>
+
+        <!-- Calcium Ions -->
+        ${caIons}
+
+        <!-- Active Cross Bridges -->
+        ${crossBridges}
+      `;
+    }
+
+    /* ==========================================================================
+       4. MINI-GAMES LOGIC
+       ========================================================================== */
+    function switchGame(gameNum) {
+      document.getElementById('game-container-1').classList.add('hidden');
+      document.getElementById('game-container-2').classList.add('hidden');
+      document.getElementById(`game-container-${gameNum}`).classList.remove('hidden');
+
+      const btn1 = document.getElementById('game-tab-1');
+      const btn2 = document.getElementById('game-tab-2');
+
+      if (gameNum === 1) {
+        btn1.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all bg-purple-600 text-white shadow-md";
+        btn2.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900";
+      } else {
+        btn2.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all bg-indigo-600 text-white shadow-md";
+        btn1.className = "px-5 py-3 rounded-xl font-bold text-sm transition-all text-slate-600 hover:text-slate-900";
+      }
+    }
+
+    // GAME 1 LOGIC
+    const game1Parts = [
+      { id: 'z-disc', label: 'Z-Disc (Anchor)', color: 'bg-red-500' },
+      { id: 'actin', label: 'Actin Thin Filament', color: 'bg-sky-500' },
+      { id: 'myosin', label: 'Myosin Thick Filament', color: 'bg-amber-500' },
+      { id: 'm-line', label: 'M-Line (Center)', color: 'bg-orange-500' },
+      { id: 'calcium', label: 'Calcium Ion (Ca2+)', color: 'bg-teal-500' }
+    ];
+
+    let selectedGame1Part = null;
+    let game1Score = 0;
+
+    function initGame1Palette() {
+      const palette = document.getElementById('game1-palette');
+      palette.innerHTML = '';
+      game1Parts.forEach(part => {
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left p-3 rounded-xl border-2 border-slate-200 text-xs font-bold text-slate-700 hover:border-purple-400 flex items-center justify-between transition bg-white`;
+        btn.id = `palette-${part.id}`;
+        btn.onclick = () => selectGame1Part(part.id);
+        btn.innerHTML = `
+          <span class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full ${part.color}"></span> ${part.label}
+          </span>
+          <i class="fa-solid fa-hand-pointer text-slate-300"></i>
+        `;
+        palette.appendChild(btn);
+      });
+    }
+
+    function selectGame1Part(partId) {
+      selectedGame1Part = partId;
+      document.querySelectorAll('#game1-palette button').forEach(b => b.classList.remove('border-purple-600', 'bg-purple-50'));
+      const activeBtn = document.getElementById(`palette-${partId}`);
+      if (activeBtn) activeBtn.classList.add('border-purple-600', 'bg-purple-50');
+      document.getElementById('game1-feedback').innerText = `Selected: ${partId.toUpperCase()}. Now click its matching slot in the dark diagram box!`;
+    }
+
+    function placeGame1Part(targetSlot) {
+      if (!selectedGame1Part) {
+        document.getElementById('game1-feedback').innerText = "Please select a part from the palette first!";
+        return;
+      }
+
+      if (selectedGame1Part === targetSlot) {
+        game1Score++;
+        document.getElementById('game1-score').innerText = game1Score;
+        document.getElementById('game1-feedback').innerText = `Correct! ${targetSlot.toUpperCase()} correctly placed!`;
+        document.getElementById(`palette-${selectedGame1Part}`).classList.add('opacity-40', 'pointer-events-none');
+        selectedGame1Part = null;
+
+        if (game1Score === 5) {
+          confetti({ particleCount: 50, spread: 70 });
+          document.getElementById('game1-feedback').innerText = "Congratulations! You completed the Sarcomere Assembly!";
+        }
+      } else {
+        document.getElementById('game1-feedback').innerText = `Oops! That slot isn't for ${selectedGame1Part.toUpperCase()}. Try again!`;
+      }
+    }
+
+    // GAME 2 LOGIC
+    const game2Questions = [
+      {
+        prompt: "Ion stored inside Sarcoplasmic Reticulum that triggers cross-bridge binding.",
+        correct: "Calcium (Ca2+)",
+        options: ["Calcium (Ca2+)", "Sodium (Na+)", "Potassium (K+)", "ATP"]
+      },
+      {
+        prompt: "High-energy molecule needed to detach Myosin head from Actin filament.",
+        correct: "ATP",
+        options: ["ADP", "ATP", "Calcium", "Troponin"]
+      },
+      {
+        prompt: "Protein ribbon that blocks active binding sites on Actin in a relaxed muscle.",
+        correct: "Tropomyosin",
+        options: ["Tropomyosin", "Troponin", "Myosin", "Titin"]
+      },
+      {
+        prompt: "Dark protein line located at the exact center of a Sarcomere.",
+        correct: "M-Line",
+        options: ["Z-Disc", "M-Line", "H-Zone", "I-Band"]
+      }
+    ];
+
+    let game2Idx = 0;
+    let game2Score = 0;
+    let game2Timer = 15;
+    let game2Interval = null;
+
+    function startGame2() {
+      game2Idx = 0;
+      game2Score = 0;
+      game2Timer = 15;
+      document.getElementById('game2-score').innerText = '0';
+      document.getElementById('game2-timer').innerText = '15';
+      
+      document.getElementById('game2-start-screen').classList.add('hidden');
+      document.getElementById('game2-play-screen').classList.remove('hidden');
+
+      game2Interval = setInterval(() => {
+        game2Timer--;
+        document.getElementById('game2-timer').innerText = game2Timer;
+        if (game2Timer <= 0) {
+          endGame2();
+        }
+      }, 1000);
+
+      renderGame2Question();
+    }
+
+    function renderGame2Question() {
+      if (game2Idx >= game2Questions.length) {
+        endGame2();
+        return;
+      }
+
+      const q = game2Questions[game2Idx];
+      document.getElementById('game2-prompt').innerText = `"${q.prompt}"`;
+
+      const optionsDiv = document.getElementById('game2-options');
+      optionsDiv.innerHTML = '';
+
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = "btn-3d bg-slate-800 hover:bg-indigo-600 border border-slate-700 text-white font-bold p-3 rounded-xl text-xs sm:text-sm shadow-sm transition";
+        btn.innerText = opt;
+        btn.onclick = () => answerGame2(opt);
+        optionsDiv.appendChild(btn);
+      });
+    }
+
+    function answerGame2(choice) {
+      const q = game2Questions[game2Idx];
+      if (choice === q.correct) {
+        game2Score += 25;
+        document.getElementById('game2-score').innerText = game2Score;
+      }
+      game2Idx++;
+      renderGame2Question();
+    }
+
+    function endGame2() {
+      clearInterval(game2Interval);
+      document.getElementById('game2-play-screen').classList.add('hidden');
+      document.getElementById('game2-start-screen').classList.remove('hidden');
+      document.getElementById('game2-start-screen').innerHTML = `
+        <i class="fa-solid fa-trophy text-5xl text-amber-400"></i>
+        <h3 class="font-fredoka text-2xl text-white font-bold">Speed Run Finished!</h3>
+        <p class="text-sm text-slate-300">Your Final Score: <strong class="text-emerald-400 text-xl">${game2Score}</strong> pts</p>
+        <button onclick="startGame2()" class="btn-3d shadow-3d-green bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-8 py-3.5 rounded-2xl text-base inline-flex items-center gap-2 mt-4">
+          <i class="fa-solid fa-rotate-left"></i> Play Again
+        </button>
+      `;
+      confetti({ particleCount: 40 });
+    }
+
+    /* ==========================================================================
+       5. QUIZ LOGIC
+       ========================================================================== */
+    const quizData = [
+      {
+        q: "What is the primary role of Calcium ions (Ca2+) during skeletal muscle contraction?",
+        options: [
+          "A. Direct hydrolysis to synthesize new ATP molecules",
+          "B. Binding to Troponin to shift Tropomyosin off Actin binding sites",
+          "C. Pumping Myosin heads back into the sarcoplasmic reticulum",
+          "D. Forming permanent covalent bonds with Z-discs"
+        ],
+        answer: 1,
+        explanation: "Calcium binds Troponin, inducing a conformational change that pulls Tropomyosin away from Actin's myosin-binding sites."
+      },
+      {
+        q: "According to the Sliding Filament Theory, what happens to the Sarcomere during contraction?",
+        options: [
+          "A. Actin filaments decrease in physical length",
+          "B. Myosin thick filaments shrink completely",
+          "C. Z-discs move closer together, shortening the overall sarcomere",
+          "D. M-line disappears permanently"
+        ],
+        answer: 2,
+        explanation: "Filaments DO NOT shrink; instead, thin filaments slide past thick filaments, pulling Z-discs closer together."
+      },
+      {
+        q: "What event causes the Myosin head to detach from the Actin filament?",
+        options: [
+          "A. Binding of a fresh ATP molecule to the Myosin head",
+          "B. Release of Calcium ions back into the T-tubules",
+          "C. Breakdown of glycogen into glucose",
+          "D. Shift of Troponin back over the M-line"
+        ],
+        answer: 0,
+        explanation: "Binding of new ATP lowers Myosin's affinity for Actin, allowing cross-bridge detachment."
+      },
+      {
+        q: "Which sheath of connective tissue surrounds an entire individual Muscle Fiber cell?",
+        options: [
+          "A. Epimysium",
+          "B. Perimysium",
+          "C. Endomysium",
+          "D. Periosteum"
+        ],
+        answer: 2,
+        explanation: "Endomysium wraps individual muscle fibers, Perimysium wraps fascicles, and Epimysium wraps whole muscles."
+      },
+      {
+        q: "What biological state occurs during muscle relaxation?",
+        options: [
+          "A. Calcium ions are actively pumped back into the Sarcoplasmic Reticulum",
+          "B. High levels of Calcium flood the sarcoplasm continuously",
+          "C. Tropomyosin remains detached from Actin permanently",
+          "D. ATP hydrolysis is completely impossible"
+        ],
+        answer: 0,
+        explanation: "Relaxation requires active pumping of Ca2+ back into the Sarcoplasmic Reticulum (SR), allowing Tropomyosin to re-block binding sites."
+      }
+    ];
+
+    let quizCurrentIndex = 0;
+    let quizScore = 0;
+    let quizAnswered = false;
+
+    function renderQuizQuestion() {
+      quizAnswered = false;
+      document.getElementById('btn-next-quiz').classList.add('hidden');
+
+      const data = quizData[quizCurrentIndex];
+      document.getElementById('quiz-current-num').innerText = quizCurrentIndex + 1;
+      document.getElementById('quiz-total-num').innerText = quizData.length;
+      document.getElementById('quiz-question-text').innerText = `${quizCurrentIndex + 1}. ${data.q}`;
+
+      // Progress bar
+      const pct = ((quizCurrentIndex + 1) / quizData.length) * 100;
+      document.getElementById('quiz-progress-bar').style.width = `${pct}%`;
+
+      const optionsBox = document.getElementById('quiz-options-container');
+      optionsBox.innerHTML = '';
+
+      data.options.forEach((optText, optIdx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-400 font-bold text-xs sm:text-sm text-slate-700 bg-white transition flex items-center justify-between";
+        btn.id = `quiz-opt-${optIdx}`;
+        btn.onclick = () => selectQuizOption(optIdx);
+        btn.innerHTML = `
+          <span>${optText}</span>
+          <i class="fa-regular fa-circle text-slate-300" id="quiz-icon-${optIdx}"></i>
+        `;
+        optionsBox.appendChild(btn);
+      });
+    }
+
+    function selectQuizOption(selectedIdx) {
+      if (quizAnswered) return;
+      quizAnswered = true;
+
+      const data = quizData[quizCurrentIndex];
+      const isCorrect = (selectedIdx === data.answer);
+
+      if (isCorrect) {
+        quizScore++;
+        const btn = document.getElementById(`quiz-opt-${selectedIdx}`);
+        btn.className = "w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-xs sm:text-sm text-emerald-800 transition flex items-center justify-between";
+        document.getElementById(`quiz-icon-${selectedIdx}`).className = "fa-solid fa-circle-check text-emerald-500 text-lg";
+      } else {
+        const wrongBtn = document.getElementById(`quiz-opt-${selectedIdx}`);
+        wrongBtn.className = "w-full text-left p-4 rounded-2xl border-2 border-red-500 bg-red-50 font-bold text-xs sm:text-sm text-red-800 transition flex items-center justify-between";
+        document.getElementById(`quiz-icon-${selectedIdx}`).className = "fa-solid fa-circle-xmark text-red-500 text-lg";
+
+        // Show correct option
+        const correctBtn = document.getElementById(`quiz-opt-${data.answer}`);
+        correctBtn.className = "w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-bold text-xs sm:text-sm text-emerald-800 transition flex items-center justify-between";
+      }
+
+      // Add explanation text
+      const expDiv = document.createElement('div');
+      expDiv.className = "p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 mt-2 font-medium";
+      expDiv.innerHTML = `<strong>Explanation:</strong> ${data.explanation}`;
+      document.getElementById('quiz-options-container').appendChild(expDiv);
+
+      document.getElementById('btn-next-quiz').classList.remove('hidden');
+    }
+
+    function nextQuizQuestion() {
+      if (quizCurrentIndex < quizData.length - 1) {
+        quizCurrentIndex++;
+        renderQuizQuestion();
+      } else {
+        showQuizResults();
+      }
+    }
+
+    function showQuizResults() {
+      document.getElementById('quiz-body').classList.add('hidden');
+      document.getElementById('quiz-result-screen').classList.remove('hidden');
+
+      const pct = Math.round((quizScore / quizData.length) * 100);
+      document.getElementById('quiz-final-score').innerText = `${pct}%`;
+
+      const feedback = document.getElementById('quiz-final-feedback');
+      if (pct === 100) {
+        feedback.innerText = "Outstanding! Perfect mastery of Muscle Contraction & Relaxation!";
+        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+      } else if (pct >= 60) {
+        feedback.innerText = "Great job! Review the missed concepts to hit 100%!";
+      } else {
+        feedback.innerText = "Keep practicing! Explore the 3D Lessons again to reinforce your learning.";
+      }
+    }
+
+    function resetQuiz() {
+      quizCurrentIndex = 0;
+      quizScore = 0;
+      document.getElementById('quiz-result-screen').classList.add('hidden');
+      document.getElementById('quiz-body').classList.remove('hidden');
+      renderQuizQuestion();
+    }
+
+    /* ==========================================================================
+       6. INITIALIZATION ON WINDOW LOAD
+       ========================================================================== */
+    window.onload = function() {
+      renderStructureLevel();
+      initGame1Palette();
+      renderQuizQuestion();
+    };
+  </script>
+</body>
+</html>
